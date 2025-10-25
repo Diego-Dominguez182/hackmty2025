@@ -77,7 +77,7 @@ export default function HomeScreen() {
     // --- LÓGICA DE CARGA (Sin cambios, ya incluía setRefreshing) ---
     const fetchData = useCallback(async (isRefreshing = false) => {
         if (!isRefreshing) {
-            setAccLoading(true); 
+            setAccLoading(true);
         }
         setAccError(null);
 
@@ -90,14 +90,14 @@ export default function HomeScreen() {
         try {
             const resAcc = await fetch(
                 `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65?key=2cbc508da1f232ec2f27f7fc79a2d9ba${cacheBust}`,
-                { headers: antiCacheHeaders } 
+                { headers: antiCacheHeaders }
             );
             if (!resAcc.ok) throw new Error(`HTTP ${resAcc.status} (Cuenta)`);
             const dataAccount = await resAcc.json();
 
             const resPurchases = await fetch(
                 `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/purchases?key=2cbc508da1f232ec2f27f7fc79a2d9ba${cacheBust}`,
-                { headers: antiCacheHeaders } 
+                { headers: antiCacheHeaders }
             );
             if (!resPurchases.ok)
                 throw new Error(`HTTP ${resPurchases.status} (Compras)`);
@@ -112,7 +112,28 @@ export default function HomeScreen() {
             const dataTransfers = await resTransfers.json();
 
             setAccount(dataAccount);
-            setTransactions([...dataPurchases, ...dataTransfers]);
+            // 1. Combinar ambas listas
+            const allTransactions = [...dataPurchases, ...dataTransfers];
+
+            // 2. Ordenar la lista combinada por fecha (más reciente primero)
+            allTransactions.sort((a, b) => {
+                try {
+                    // Usa la fecha de transferencia O la fecha de compra, la que exista
+                    const dateA = new Date(a.transaction_date || a.purchase_date); //
+                    const dateB = new Date(b.transaction_date || b.purchase_date); //
+
+                    // Orden descendente: compara los milisegundos de cada fecha.
+                    // Si dateB es más reciente, su getTime() será mayor,
+                    // resultando en un número positivo, poniendo 'b' antes que 'a'.
+                    return dateB.getTime() - dateA.getTime(); //
+                } catch (e) {
+                    console.error("Error al parsear fecha para ordenar:", e, a, b); // Ver si hay errores
+                    return 0; // No mover si hay error al convertir la fecha
+                }
+            });
+
+            // 3. Guardar la lista YA ORDENADA en el estado
+            setTransactions(allTransactions);
         } catch (err: any) {
             setAccError(err?.message ?? "Error desconocido");
             console.error("Error al obtener datos:", err);
@@ -122,20 +143,20 @@ export default function HomeScreen() {
             }
             setRefreshing(false); // Detener el "pull-to-refresh"
         }
-    }, []); 
+    }, []);
 
     useFocusEffect(
         React.useCallback(() => {
-            fetchData(false); 
-        }, [fetchData]) 
+            fetchData(false);
+        }, [fetchData])
     );
 
     // --- FUNCIÓN onRefresh (Sin cambios, ya estaba correcta) ---
     const onRefresh = useCallback(() => {
-        setRefreshing(true); 
-        fetchData(true); 
+        setRefreshing(true);
+        fetchData(true);
     }, [fetchData]);
-    
+
     // ... (El resto de tus constantes: H_PADDING, quickActions, frequentContacts, etc. no cambian) ...
     const H_PADDING = 16;
     const GRID_GAP = 10;
@@ -201,7 +222,7 @@ export default function HomeScreen() {
                         tintColor={isDark ? "#FFFFFF" : "#0369A1"} // Color de la ruedita
                     />
                 }
-                // --- FIN DE LA ADICIÓN ---
+            // --- FIN DE LA ADICIÓN ---
             >
                 {simpleMode ? (
                     // ... (Tu UI de Modo Simple - sin cambios) ...
