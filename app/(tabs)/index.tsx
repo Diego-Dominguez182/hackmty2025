@@ -118,13 +118,8 @@ export default function HomeScreen() {
             // 2. Ordenar la lista combinada por fecha (más reciente primero)
             allTransactions.sort((a, b) => {
                 try {
-                    // Usa la fecha de transferencia O la fecha de compra, la que exista
                     const dateA = new Date(a.transaction_date || a.purchase_date); //
                     const dateB = new Date(b.transaction_date || b.purchase_date); //
-
-                    // Orden descendente: compara los milisegundos de cada fecha.
-                    // Si dateB es más reciente, su getTime() será mayor,
-                    // resultando en un número positivo, poniendo 'b' antes que 'a'.
                     return dateB.getTime() - dateA.getTime(); //
                 } catch (e) {
                     console.error("Error al parsear fecha para ordenar:", e, a, b); // Ver si hay errores
