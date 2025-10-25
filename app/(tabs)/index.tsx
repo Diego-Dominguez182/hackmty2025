@@ -1,3 +1,5 @@
+// Archivo: index.tsx (CORREGIDO CON PULL-TO-REFRESH)
+
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -377,6 +379,7 @@ export default function HomeScreen() {
                                             router.push("/(tabs)/transferScreen");
                                         } else if (a.key === "recibir") {
                                         } else if (a.key === "pagar") {
+                                            router.push("/(tabs)/payScreen");
                                         } else if (a.key === "cambiar") {
                                         }
                                     }}
