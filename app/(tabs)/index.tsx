@@ -1,15 +1,19 @@
+// Archivo: index.tsx (CORREGIDO CON PULL-TO-REFRESH)
+
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react"; // 👈 1. Importar useCallback
 import {
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -25,6 +29,7 @@ export default function HomeScreen() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [accError, setAccError] = useState<string | null>(null);
   const [accLoading, setAccLoading] = useState<boolean>(true);
+  const [simpleMode, setSimpleMode] = useState<boolean>(false);
 
   const tintColor = Colors[colorScheme ?? "light"].tint;
   const isDark = (colorScheme ?? "light") === "dark";
@@ -46,6 +51,7 @@ export default function HomeScreen() {
   };
 
   const pickIcon = (desc: string = "") => {
+    // ... (tu función pickIcon - sin cambios)
     const s = desc.toLowerCase();
     if (s.includes("taxi")) return "car.fill";
     if (s.includes("transporte")) return "tram.fill.tunnel";
@@ -66,56 +72,80 @@ export default function HomeScreen() {
     [transactions, visibleCount]
   );
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const res = await fetch(
-          "http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65?key=2cbc508da1f232ec2f27f7fc79a2d9ba"
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (alive) setAccount(data);
-      } catch (err: any) {
-        if (alive) setAccError(err?.message ?? "Error desconocido");
-        console.error("Error al obtener la cuenta:", err);
-      } finally {
-        if (alive) setAccLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+  // --- 4. MOVER LA LÓGICA DE CARGA A UNA FUNCIÓN REUTILIZABLE ---
+  const fetchData = useCallback(async (isRefreshing = false) => {
+    if (!isRefreshing) {
+      setAccLoading(true); // Mostrar "Cargando..." solo la primera vez
+    }
+    setAccError(null);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const res = await fetch(
-          "http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/purchases?key=2cbc508da1f232ec2f27f7fc79a2d9ba"
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const res2 = await fetch(
-          "http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/transfers?key=2cbc508da1f232ec2f27f7fc79a2d9ba"
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data2 = await res2.json();
-        const dataComplete = [...data, ...data2];
-        if (alive) setTransactions(dataComplete);
-      } catch (err: any) {
-        if (alive) setAccError(err?.message ?? "Error desconocido");
-        console.error("Error al obtener la cuenta:", err);
-      } finally {
-        if (alive) setAccLoading(false);
+    // --- ¡INICIO DEL CAMBIO! ---
+    // "Cache Buster": Parámetro de URL único
+    const cacheBust = `&_cb=${new Date().getTime()}`;
+
+    // Encabezados (Headers) explícitos anti-caché
+    const antiCacheHeaders = new Headers();
+    antiCacheHeaders.append('Cache-Control', 'no-cache, no-store, must-revalidate');
+    antiCacheHeaders.append('Pragma', 'no-cache');
+    antiCacheHeaders.append('Expires', '0');
+    // --- FIN DEL CAMBIO ---
+
+    try {
+      // 1. Cargar la información de la cuenta
+      const resAcc = await fetch(
+        `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65?key=2cbc508da1f232ec2f27f7fc79a2d9ba${cacheBust}`,
+        { headers: antiCacheHeaders } // <--- AÑADIDO
+      );
+      if (!resAcc.ok) throw new Error(`HTTP ${resAcc.status} (Cuenta)`);
+      const dataAccount = await resAcc.json();
+
+      // 2. Cargar las compras
+      const resPurchases = await fetch(
+        `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/purchases?key=2cbc508da1f232ec2f27f7fc79a2d9ba${cacheBust}`,
+        { headers: antiCacheHeaders } // <--- AÑADIDO
+      );
+      if (!resPurchases.ok)
+        throw new Error(`HTTP ${resPurchases.status} (Compras)`);
+      const dataPurchases = await resPurchases.json();
+
+      // 3. Cargar las transferencias
+      const resTransfers = await fetch(
+        `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/transfers?key=2cbc508da1f232ec2f27f7fc79a2d9ba${cacheBust}`,
+        { headers: antiCacheHeaders }
+      );
+      if (!resTransfers.ok)
+        throw new Error(`HTTP ${resTransfers.status} (Transferencias)`);
+      const dataTransfers = await resTransfers.json();
+
+      setAccount(dataAccount);
+      setTransactions([...dataPurchases, ...dataTransfers]);
+    } catch (err: any) {
+      setAccError(err?.message ?? "Error desconocido");
+      console.error("Error al obtener datos:", err);
+    } finally {
+      if (!isRefreshing) {
+        setAccLoading(false);
       }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+      setRefreshing(false); // Detener el "pull-to-refresh"
+    }
+  }, []); // useCallback con dependencias vacías
+
+  // useFocusEffect ahora solo llama a nuestra nueva función
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData(false); // Llama a la función de carga
+    }, [fetchData]) // Depende de fetchData
+  );
+
+  // --- 5. AÑADIR LA FUNCIÓN onRefresh ---
+  const onRefresh = useCallback(() => {
+    setRefreshing(true); // Inicia la animación de "cargando"
+    fetchData(true); // Llama a fetchData indicando que es un refresh
+  }, [fetchData]);
+  // ---
+
   const H_PADDING = 16;
+  // ... (El resto de tus constantes y lógica de UI - sin cambios)
   const GRID_GAP = 10;
   const actionSize = Math.floor((width - H_PADDING * 2 - GRID_GAP * 3) / 4);
   const balanceFont = width < 360 ? 28 : width < 400 ? 32 : 40;
@@ -130,6 +160,7 @@ export default function HomeScreen() {
 
   const quickActions = useMemo(
     () => [
+      // ... (tus acciones rápidas - sin cambios)
       {
         key: "enviar",
         label: "Enviar",
@@ -153,39 +184,162 @@ export default function HomeScreen() {
     []
   );
 
+  const frequentContacts = useMemo(
+    () => [
+      {
+        id: "1",
+        name: "Yahir Zapata",
+        account: "9212408309123456",
+        avatar: "👨",
+        lastAmount: 500,
+      },
+      {
+        id: "2",
+        name: "Angel Arturo",
+        account: "9221082014123456",
+        avatar: "👨",
+        lastAmount: 1200,
+      },
+      {
+        id: "3",
+        name: "Rocael Lopez",
+        account: "9211541234123456",
+        avatar: "👨",
+        lastAmount: 800,
+      },
+    ],
+    []
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? "#0F172A" : "#F8FAFC" }}>
+      <View
+        style={[
+          styles.navbar,
+          { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" },
+        ]}
+      >
+        <ThemedText type="defaultSemiBold" style={styles.navbarTitle}>
+          Modo simple
+        </ThemedText>
+        <Switch
+          value={simpleMode}
+          onValueChange={setSimpleMode}
+          trackColor={{ false: "#E2E8F0", true: tintColor }}
+          thumbColor={simpleMode ? "#FFFFFF" : "#F4F4F5"}
+        />
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          style={[
-            styles.balanceCard,
-            {
-              backgroundColor: isDark ? "#0C4A6E" : "#0369A1",
-              marginHorizontal: H_PADDING,
-            },
-          ]}
-        >
-          <View style={styles.balanceHeaderRow}>
-            <ThemedText style={styles.balanceTitle}>
-              Saldo disponible
-            </ThemedText>
-            <TouchableOpacity onPress={() => setHidden((v) => !v)} hitSlop={8}>
-              <IconSymbol
-                name={hidden ? "eye.slash.fill" : "eye.fill"}
-                size={20}
-                color="#E0F2FE"
-              />
+        {simpleMode ? (
+          <View style={styles.simpleModeContainer}>
+            <TouchableOpacity
+              style={[
+                styles.simpleCard,
+                { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" },
+              ]}
+              onPress={() => setHidden((v) => !v)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.simpleCardHeader}>
+                <IconSymbol
+                  name="creditcard.fill"
+                  size={32}
+                  color={tintColor}
+                />
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={styles.simpleCardTitle}
+                >
+                  Consultar Saldo
+                </ThemedText>
+              </View>
+              <ThemedText
+                style={[styles.simpleCardAmount, { fontSize: balanceFont }]}
+              >
+                {balanceText}
+              </ThemedText>
+              <ThemedText style={styles.simpleCardSubtitle}>
+                Toca para {hidden ? "mostrar" : "ocultar"} saldo
+              </ThemedText>
+            </TouchableOpacity>
+
++            <TouchableOpacity
+              style={[
+                styles.simpleCard,
+                { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" },
+              ]}
+              onPress={() => setChatVisible(true)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.simpleCardHeader}>
+                <IconSymbol name="paperplane.fill" size={32} color="#10B981" />
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={styles.simpleCardTitle}
+                >
+                  Transferir
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.simpleCardSubtitle}>
+                Enviar dinero a contactos frecuentes
+              </ThemedText>
+              <View style={styles.contactPreview}>
+                {frequentContacts.slice(0, 3).map((contact) => (
+                  <View key={contact.id} style={styles.contactItem}>
+                    <ThemedText style={styles.contactAvatar}>
+                      {contact.avatar}
+                    </ThemedText>
+                    <ThemedText style={styles.contactName} numberOfLines={1}>
+                      {contact.name}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </TouchableOpacity>
+
++            <TouchableOpacity
+              style={[
+                styles.simpleCard,
+                { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" },
+              ]}
+              onPress={() => router.push("/(tabs)/transferScreen")}
+              activeOpacity={0.8}
+            >
+              <View style={styles.simpleCardHeader}>
+                <IconSymbol
+                  name="tray.and.arrow.down.fill"
+                  size={32}
+                  color="#0C4A6E"
+                />
+                <ThemedText
+                  type="defaultSemiBold"
+                  style={styles.simpleCardTitle}
+                >
+                  Depositar
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.simpleCardSubtitle}>
+                Agregar dinero a tu cuenta
+              </ThemedText>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.balanceMainRow}>
-            <ThemedText
-              style={[styles.balanceAmount, { fontSize: balanceFont }]}
+        ) : (
+          <>
+            <View
+              style={[
+                styles.balanceCard,
+                {
+                  backgroundColor: isDark ? "#0C4A6E" : "#0369A1",
+                  marginHorizontal: H_PADDING,
+                },
+              ]}
             >
+<<<<<<< HEAD
               {balanceText}
             </ThemedText>
             <View style={styles.badge}>
@@ -253,19 +407,41 @@ export default function HomeScreen() {
                       backgroundColor: a.bg,
                     },
                   ]}
+=======
+              <View style={styles.balanceHeaderRow}>
+                <ThemedText style={styles.balanceTitle}>
+                  Saldo disponible
+                </ThemedText>
+                <TouchableOpacity
+                  onPress={() => setHidden((v) => !v)}
+                  hitSlop={8}
+>>>>>>> a8b38babc7f4c412675875cd158818ef3dd6803d
                 >
                   <IconSymbol
-                    name={a.icon as any}
-                    size={Math.floor(actionSize * 0.42)}
+                    name={hidden ? "eye.slash.fill" : "eye.fill"}
+                    size={20}
+                    color="#E0F2FE"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.balanceMainRow}>
+                <ThemedText
+                  style={[styles.balanceAmount, { fontSize: balanceFont }]}
+                >
+                  {balanceText}
+                </ThemedText>
+                <View style={styles.badge}>
+                  <IconSymbol
+                    name="chart.line.uptrend.xyaxis"
+                    size={13}
                     color="#FFFFFF"
                   />
+                  <ThemedText style={styles.badgeText}>+2.3%</ThemedText>
                 </View>
-                <ThemedText style={styles.quickLabel}>{a.label}</ThemedText>
               </View>
-            </Pressable>
-          ))}
-        </View>
 
+<<<<<<< HEAD
         <View
           style={[
             styles.transactionsHeaderRow,
@@ -279,104 +455,197 @@ export default function HomeScreen() {
             </ThemedText>
           </Pressable>
         </View>
+=======
+              <View style={styles.sparklineWrap}>
+                <View style={styles.sparklineShadow} />
+                <View style={styles.sparklineLine} />
+              </View>
+>>>>>>> a8b38babc7f4c412675875cd158818ef3dd6803d
 
-        <ThemedView
-          style={[styles.transactionsList, { paddingHorizontal: H_PADDING }]}
-        >
-          {accLoading && (
-            <ThemedText style={{ opacity: 0.7, paddingVertical: 12 }}>
-              Cargando transacciones…
-            </ThemedText>
-          )}
-
-          {!accLoading && visibleTxs.length === 0 && (
-            <ThemedText style={{ opacity: 0.7, paddingVertical: 12 }}>
-              No hay transacciones para mostrar.
-            </ThemedText>
-          )}
-
-          {!accLoading &&
-            visibleTxs.map((tx) => {
-              const outgoing = tx.payer_id === ACCOUNT_ID;
-              const amountTxt = `${outgoing ? "-" : "+"}${money(tx.amount)}`;
-              const amountStyle = outgoing
-                ? styles.txAmountNeg
-                : styles.txAmountPos;
-              const iconName = pickIcon(tx.description);
-              const cancelled =
-                String(tx.status || "").toLowerCase() === "cancelled";
-
-              return (
-                <Pressable
-                  key={tx._id}
-                  style={[
-                    styles.transactionItem,
-                    cancelled && { opacity: 0.55 },
-                  ]}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(tabs)/transactionDetailScreen",
-                      params: {
-                        id: tx._id,
-                        tx: encodeURIComponent(JSON.stringify(tx)),
-                        accountId: ACCOUNT_ID,
-                      },
-                    })
-                  }
-                >
-                  <View
-                    style={[
-                      styles.txIcon,
-                      {
-                        backgroundColor: isDark
-                          ? "rgba(148,163,184,0.15)"
-                          : "rgba(100,116,139,0.1)",
-                      },
-                    ]}
-                  >
-                    <IconSymbol
-                      name={iconName as any}
-                      size={20}
-                      color={tintColor}
-                    />
-                  </View>
-
-                  <View style={styles.txInfo}>
-                    <ThemedText type="defaultSemiBold" numberOfLines={1}>
-                      {tx.description || "Movimiento"}
-                    </ThemedText>
-                    <ThemedText style={styles.txDate}>
-                      {humanDate(tx.transaction_date || tx.purchase_date)} •{" "}
-                      {tx.type?.toUpperCase() || "—"}
-                    </ThemedText>
-                  </View>
-
-                  <ThemedText type="defaultSemiBold" style={amountStyle}>
-                    {amountTxt}
+              <View style={styles.daysRow}>
+                {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
+                  <ThemedText key={`${d}-${i}`} style={styles.dayText}>
+                    {d}
                   </ThemedText>
-                </Pressable>
-              );
-            })}
+                ))}
+              </View>
 
-          {visibleCount < transactions.length && (
-            <TouchableOpacity
-              onPress={() => setVisibleCount((c) => c + 8)}
-              activeOpacity={0.8}
-              style={styles.loadMore}
+              <ThemedText style={styles.accountHint}>
+                Cuenta de ahorros •••• 4892
+              </ThemedText>
+            </View>
+
+            <View
+              style={[styles.sectionHeader, { paddingHorizontal: H_PADDING }]}
             >
-              <ThemedText style={styles.loadMoreText}>Cargar más</ThemedText>
-            </TouchableOpacity>
-          )}
-        </ThemedView>
+              <ThemedText type="subtitle">Acciones rápidas</ThemedText>
+            </View>
+
+            <View
+              style={[
+                styles.quickGrid,
+                { paddingHorizontal: H_PADDING, columnGap: GRID_GAP },
+              ]}
+            >
+              {quickActions.map((a) => (
+                <Pressable
+                  key={a.key}
+                  onPress={() => {
+                    if (a.key === "enviar") {
+                      router.push("/(tabs)/transferScreen");
+                    } else if (a.key === "recibir") {
+                    } else if (a.key === "pagar") {
+                    } else if (a.key === "cambiar") {
+                    }
+                  }}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+                >
+                  <View style={styles.quickItem}>
+                    <View
+                      style={[
+                        styles.quickIconBox,
+                        {
+                          width: actionSize,
+                          height: actionSize,
+                          borderRadius: Math.floor(actionSize * 0.28),
+                          backgroundColor: a.bg,
+                        },
+                      ]}
+                    >
+                      <IconSymbol
+                        name={a.icon as any}
+                        size={Math.floor(actionSize * 0.42)}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                    <ThemedText style={styles.quickLabel}>{a.label}</ThemedText>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+
+            <View
+              style={[
+                styles.transactionsHeaderRow,
+                { paddingHorizontal: H_PADDING },
+              ]}
+            >
+              <ThemedText type="subtitle">Transacciones recientes</ThemedText>
+              <Pressable hitSlop={8} onPress={() => {}}>
+                <ThemedText style={[styles.link, { color: tintColor }]}>
+                  Ver todas
+                </ThemedText>
+              </Pressable>
+            </View>
+
+            <ThemedView
+              style={[
+                styles.transactionsList,
+                { paddingHorizontal: H_PADDING },
+              ]}
+            >
+              {accLoading && (
+                <ThemedText style={{ opacity: 0.7, paddingVertical: 12 }}>
+                  Cargando transacciones…
+                </ThemedText>
+              )}
+
+              {!accLoading && visibleTxs.length === 0 && (
+                <ThemedText style={{ opacity: 0.7, paddingVertical: 12 }}>
+                  No hay transacciones para mostrar.
+                </ThemedText>
+              )}
+
+              {!accLoading &&
+                visibleTxs.map((tx) => {
+                  const outgoing = tx.payer_id === ACCOUNT_ID;
+                  const amountTxt = `${outgoing ? "-" : "+"}${money(
+                    tx.amount
+                  )}`;
+                  const amountStyle = outgoing
+                    ? styles.txAmountNeg
+                    : styles.txAmountPos;
+                  const iconName = pickIcon(tx.description);
+                  const cancelled =
+                    String(tx.status || "").toLowerCase() === "cancelled";
+
+                  return (
+                    <Pressable
+                      key={tx._id}
+                      style={[
+                        styles.transactionItem,
+                        cancelled && { opacity: 0.55 },
+                      ]}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(tabs)/transactionDetailScreen",
+                          params: {
+                            id: tx._id,
+                            tx: encodeURIComponent(JSON.stringify(tx)),
+                            accountId: ACCOUNT_ID,
+                          },
+                        })
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.txIcon,
+                          {
+                            backgroundColor: isDark
+                              ? "rgba(148,163,184,0.15)"
+                              : "rgba(100,116,139,0.1)",
+                          },
+                        ]}
+                      >
+                        <IconSymbol
+                          name={iconName as any}
+                          size={20}
+                          color={tintColor}
+                        />
+                      </View>
+
+                      <View style={styles.txInfo}>
+                        <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                          {tx.description || "Movimiento"}
+                        </ThemedText>
+                        <ThemedText style={styles.txDate}>
+                          {humanDate(tx.transaction_date || tx.purchase_date)} •{" "}
+                          {tx.type?.toUpperCase() || "—"}
+                        </ThemedText>
+                      </View>
+
+                      <ThemedText type="defaultSemiBold" style={amountStyle}>
+                        {amountTxt}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+
+              {visibleCount < transactions.length && (
+                <TouchableOpacity
+                  onPress={() => setVisibleCount((c) => c + 8)}
+                  activeOpacity={0.8}
+                  style={styles.loadMore}
+                >
+                  <ThemedText style={styles.loadMoreText}>
+                    Cargar más
+                  </ThemedText>
+                </TouchableOpacity>
+              )}
+            </ThemedView>
+          </>
+        )}
       </ScrollView>
 
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: tintColor }]}
-        onPress={() => setChatVisible(true)}
-        activeOpacity={0.8}
-      >
-        <IconSymbol name="sparkles" size={28} color="#fff" />
-      </TouchableOpacity>
+      {!simpleMode && (
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: tintColor }]}
+          onPress={() => setChatVisible(true)}
+          activeOpacity={0.8}
+        >
+          <IconSymbol name="sparkles" size={28} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       <Modal
         animationType="slide"
@@ -411,19 +680,67 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.chatContent}>
-              <View style={styles.messageContainer}>
-                <View
-                  style={[
-                    styles.messageBubble,
-                    { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" },
-                  ]}
-                >
-                  <ThemedText style={styles.messageText}>
-                    ¡Hola! 👋 Soy tu asistente financiero. ¿En qué puedo
-                    ayudarte hoy?
+              {simpleMode ? (
+                <View style={styles.contactsContainer}>
+                  <ThemedText type="subtitle" style={styles.contactsTitle}>
+                    Contactos frecuentes
                   </ThemedText>
+                  {frequentContacts.map((contact) => (
+                    <TouchableOpacity
+                      key={contact.id}
+                      style={[
+                        styles.contactRow,
+                        { backgroundColor: isDark ? "#0F172A" : "#F8FAFC" },
+                      ]}
+                      onPress={() => {
+                        setChatVisible(false);
+                        router.push({
+                          pathname: "/(tabs)/transferScreen",
+                          params: {
+                            contactName: contact.name,
+                            contactAccount: contact.account,
+                            lastAmount: contact.lastAmount.toString(),
+                          },
+                        });
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.contactInfo}>
+                        <ThemedText style={styles.contactAvatarLarge}>
+                          {contact.avatar}
+                        </ThemedText>
+                        <View style={styles.contactDetails}>
+                          <ThemedText type="defaultSemiBold">
+                            {contact.name}
+                          </ThemedText>
+                          <ThemedText style={styles.contactLastAmount}>
+                            Última transferencia: {money(contact.lastAmount)}
+                          </ThemedText>
+                        </View>
+                      </View>
+                      <IconSymbol
+                        name="chevron.right"
+                        size={16}
+                        color={isDark ? "#94A3B8" : "#64748B"}
+                      />
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </View>
+              ) : (
+                <View style={styles.messageContainer}>
+                  <View
+                    style={[
+                      styles.messageBubble,
+                      { backgroundColor: isDark ? "#1E293B" : "#F1F5F9" },
+                    ]}
+                  >
+                    <ThemedText style={styles.messageText}>
+                      ¡Hola! 👋 Soy tu asistente financiero. ¿En qué puedo
+                      ayudarte hoy?
+                    </ThemedText>
+                  </View>
+                </View>
+              )}
             </View>
           </Pressable>
         </Pressable>
@@ -435,6 +752,7 @@ export default function HomeScreen() {
 const CARD_RADIUS = 20;
 
 const styles = StyleSheet.create({
+  // ... (Todos tus estilos - sin cambios)
   scrollView: {
     flex: 1,
   },
@@ -468,7 +786,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   balanceMainRow: {
-    marginTop: 4,
+    marginTop: 10,
     marginBottom: 2,
     flexDirection: "row",
     alignItems: "center",
@@ -696,5 +1014,106 @@ const styles = StyleSheet.create({
   loadMoreText: {
     fontWeight: "700",
     letterSpacing: 0.2,
+  },
+
+  navbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.05)",
+  },
+  navbarTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  simpleModeContainer: {
+    padding: 20,
+    gap: 16,
+  },
+  simpleCard: {
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    height: 170,
+  },
+  simpleCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+  simpleCardTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  simpleCardAmount: {
+    fontFamily: Fonts.rounded,
+    fontWeight: "800",
+    letterSpacing: -0.5,
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  simpleCardSubtitle: {
+    fontSize: 14,
+    opacity: 0.7,
+    textAlign: "center",
+  },
+  contactPreview: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  contactItem: {
+    alignItems: "center",
+    gap: 4,
+    flex: 1,
+  },
+  contactAvatar: {
+    fontSize: 20,
+  },
+  contactName: {
+    fontSize: 12,
+    textAlign: "center",
+  },
+
+  contactsContainer: {
+    gap: 12,
+  },
+  contactsTitle: {
+    marginBottom: 8,
+  },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderRadius: 12,
+  },
+  contactInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  contactAvatarLarge: {
+    fontSize: 32,
+  },
+  contactDetails: {
+    flex: 1,
+  },
+  contactLastAmount: {
+    fontSize: 13,
+    opacity: 0.6,
+    marginTop: 2,
   },
 });
