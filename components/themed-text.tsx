@@ -17,21 +17,28 @@ export function ThemedText({
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
 
+  const allStyles = StyleSheet.flatten([styles[type], style]);
+  const fontSize = allStyles.fontSize ?? 16;
+  const safeMultiplier = fontSize >= 24 ? 1.25 : 1.5;
+  const calculatedLineHeight = Math.round(fontSize * safeMultiplier);
+  const existingLineHeight = allStyles.lineHeight;
+  const finalLineHeight =
+    existingLineHeight && existingLineHeight >= fontSize
+      ? existingLineHeight
+      : calculatedLineHeight;
   return (
     <Text
       style={[
         { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
-        style,
+        styles[type],
+        style,        
+        { lineHeight: finalLineHeight },
       ]}
       {...rest}
     />
   );
 }
+
 
 const styles = StyleSheet.create({
   default: {
@@ -46,11 +53,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    lineHeight: 32,
+    lineHeight: 40,
   },
   subtitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    lineHeight: 30,
   },
   link: {
     lineHeight: 30,
