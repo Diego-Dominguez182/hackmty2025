@@ -9,31 +9,71 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, S
 export default function TransferScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const tintColor = Colors[colorScheme ?? 'light'].tint;
-  const isDark = (colorScheme ?? 'light') === 'dark';
+  const tintColor = Colors[colorScheme ?? "light"].tint;
+  const isDark = (colorScheme ?? "light") === "dark";
 
-  const [name, setName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const BASE = "http://api.nessieisreal.com";
+  const APIKEY = "2cbc508da1f232ec2f27f7fc79a2d9ba";
+  const PAYER_ID = "68fc67519683f20dd51a3f65";
 
   const handleTransfer = async () => {
     if (!name || !accountNumber || !amount) {
-      Alert.alert('Campos incompletos', 'Por favor llena todos los campos obligatorios.');
+      Alert.alert(
+        "Campos incompletos",
+        "Por favor llena todos los campos obligatorios."
+      );
       return;
     }
 
     const montoNum = Number(amount);
     if (isNaN(montoNum) || montoNum <= 0) {
-      Alert.alert('Monto inválido', 'Ingresa un monto válido.');
+      Alert.alert("Monto inválido", "Ingresa un monto mayor a 0.");
+      return;
+    }
+
+    const looksLikeId = /^[a-f0-9]{24}$/i.test(accountNumber.trim());
+    if (!looksLikeId) {
+      Alert.alert(
+        "Cuenta destino inválida",
+        "El ID de cuenta debe tener 24 caracteres hexadecimales."
+      );
       return;
     }
 
     try {
       setLoading(true);
+
+      const [payerRes, payeeRes] = await Promise.all([
+        fetch(`${BASE}/accounts/${PAYER_ID}?key=${APIKEY}`),
+        fetch(`${BASE}/accounts/${accountNumber.trim()}?key=${APIKEY}`),
+      ]);
+
+      if (!payerRes.ok) {
+        const t = await payerRes.text();
+        throw new Error(`Cuenta origen no encontrada (${PAYER_ID}). ${t}`);
+      }
+      if (!payeeRes.ok) {
+        const t = await payeeRes.text();
+        throw new Error(`Cuenta destino no existe (${accountNumber}). ${t}`);
+      }
+
+      const body = {
+        medium: "balance",
+        payee_id: accountNumber.trim(),
+        amount: montoNum,
+        transaction_date: new Date().toISOString().slice(0, 10),
+        status: "pending",
+        description,
+      };
+
       const response = await fetch(
-        `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/transfers?key=2cbc508da1f232ec2f27f7fc79a2d9ba`,
+        `${BASE}/accounts/${PAYER_ID}/transfers?key=${APIKEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -60,7 +100,11 @@ export default function TransferScreen() {
       // --- FIN DE LA MODIFICACIÓN ---
 
       const data = await response.json();
-      Alert.alert('✅ Transferencia exitosa', `ID de transacción: ${data._id}`);
+      console.log("Transfer created:", data.objectCreated._id);
+      Alert.alert(
+        "Transferencia creada",
+        `ID: ${data.objectCreated._id ?? "—"}`
+      );
       router.back();
 
     } catch (err: any) {
@@ -74,17 +118,29 @@ export default function TransferScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: isDark ? '#0F172A' : '#F8FAFC' }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? "#0F172A" : "#F8FAFC" },
+      ]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={[styles.header, { backgroundColor: isDark ? '#1E293B' : '#FFFFFF' }]}>
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
-          <IconSymbol name="chevron.left" size={24} color={isDark ? '#E2E8F0' : '#334155'} />
+          <IconSymbol
+            name="chevron.left"
+            size={24}
+            color={isDark ? "#E2E8F0" : "#334155"}
+          />
         </TouchableOpacity>
         <ThemedText type="defaultSemiBold" style={styles.headerTitle}>
           Nueva transferencia
         </ThemedText>
-        <View style={{ width: 24 }} /> 
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.form}>
@@ -143,7 +199,9 @@ export default function TransferScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <ThemedText style={styles.buttonText}>Confirmar transferencia</ThemedText>
+            <ThemedText style={styles.buttonText}>
+              Confirmar transferencia
+            </ThemedText>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -154,14 +212,14 @@ export default function TransferScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   headerTitle: {
     fontSize: 17,
@@ -178,26 +236,26 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     padding: 14,
     borderRadius: 10,
     fontSize: 16,
-    color: '#0F172A',
+    color: "#0F172A",
   },
   inputDark: {
-    backgroundColor: '#1E293B',
-    color: '#E2E8F0',
+    backgroundColor: "#1E293B",
+    color: "#E2E8F0",
   },
   button: {
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
