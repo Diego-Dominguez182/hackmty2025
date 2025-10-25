@@ -1,13 +1,16 @@
+// Archivo: index.tsx (CORREGIDO CON PULL-TO-REFRESH)
+
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors, Fonts } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react"; // 👈 1. Importar useCallback
 import {
   Modal,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -25,6 +28,10 @@ export default function HomeScreen() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [accError, setAccError] = useState<string | null>(null);
   const [accLoading, setAccLoading] = useState<boolean>(true);
+  
+  // --- 3. AÑADIR ESTADO PARA EL REFRESH ---
+  const [refreshing, setRefreshing] = useState(false);
+  // ---
 
   const tintColor = Colors[colorScheme ?? "light"].tint;
   const isDark = (colorScheme ?? "light") === "dark";
@@ -46,6 +53,7 @@ export default function HomeScreen() {
   };
 
   const pickIcon = (desc: string = "") => {
+    // ... (tu función pickIcon - sin cambios)
     const s = desc.toLowerCase();
     if (s.includes("taxi")) return "car.fill";
     if (s.includes("transporte")) return "tram.fill.tunnel";
@@ -66,56 +74,80 @@ export default function HomeScreen() {
     [transactions, visibleCount]
   );
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const res = await fetch(
-          "http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65?key=2cbc508da1f232ec2f27f7fc79a2d9ba"
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (alive) setAccount(data);
-      } catch (err: any) {
-        if (alive) setAccError(err?.message ?? "Error desconocido");
-        console.error("Error al obtener la cuenta:", err);
-      } finally {
-        if (alive) setAccLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+  // --- 4. MOVER LA LÓGICA DE CARGA A UNA FUNCIÓN REUTILIZABLE ---
+  const fetchData = useCallback(async (isRefreshing = false) => {
+    if (!isRefreshing) {
+      setAccLoading(true); // Mostrar "Cargando..." solo la primera vez
+    }
+    setAccError(null);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const res = await fetch(
-          "http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/purchases?key=2cbc508da1f232ec2f27f7fc79a2d9ba"
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const res2 = await fetch(
-          "http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/transfers?key=2cbc508da1f232ec2f27f7fc79a2d9ba"
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data2 = await res2.json();
-        const dataComplete = [...data, ...data2];
-        if (alive) setTransactions(dataComplete);
-      } catch (err: any) {
-        if (alive) setAccError(err?.message ?? "Error desconocido");
-        console.error("Error al obtener la cuenta:", err);
-      } finally {
-        if (alive) setAccLoading(false);
+    // --- ¡INICIO DEL CAMBIO! ---
+    // "Cache Buster": Parámetro de URL único
+    const cacheBust = `&_cb=${new Date().getTime()}`;
+
+    // Encabezados (Headers) explícitos anti-caché
+    const antiCacheHeaders = new Headers();
+    antiCacheHeaders.append('Cache-Control', 'no-cache, no-store, must-revalidate');
+    antiCacheHeaders.append('Pragma', 'no-cache');
+    antiCacheHeaders.append('Expires', '0');
+    // --- FIN DEL CAMBIO ---
+
+    try {
+      // 1. Cargar la información de la cuenta
+      const resAcc = await fetch(
+        `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65?key=2cbc508da1f232ec2f27f7fc79a2d9ba${cacheBust}`,
+        { headers: antiCacheHeaders } // <--- AÑADIDO
+      );
+      if (!resAcc.ok) throw new Error(`HTTP ${resAcc.status} (Cuenta)`);
+      const dataAccount = await resAcc.json();
+
+      // 2. Cargar las compras
+      const resPurchases = await fetch(
+        `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/purchases?key=2cbc508da1f232ec2f27f7fc79a2d9ba${cacheBust}`,
+        { headers: antiCacheHeaders } // <--- AÑADIDO
+      );
+      if (!resPurchases.ok)
+        throw new Error(`HTTP ${resPurchases.status} (Compras)`);
+      const dataPurchases = await resPurchases.json();
+
+      // 3. Cargar las transferencias
+      const resTransfers = await fetch(
+        `http://api.nessieisreal.com/accounts/68fc67519683f20dd51a3f65/transfers?key=2cbc508da1f232ec2f27f7fc79a2d9ba${cacheBust}`,
+        { headers: antiCacheHeaders }
+      );
+      if (!resTransfers.ok)
+        throw new Error(`HTTP ${resTransfers.status} (Transferencias)`);
+      const dataTransfers = await resTransfers.json();
+
+      setAccount(dataAccount);
+      setTransactions([...dataPurchases, ...dataTransfers]);
+    } catch (err: any) {
+      setAccError(err?.message ?? "Error desconocido");
+      console.error("Error al obtener datos:", err);
+    } finally {
+      if (!isRefreshing) {
+        setAccLoading(false);
       }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+      setRefreshing(false); // Detener el "pull-to-refresh"
+    }
+  }, []); // useCallback con dependencias vacías
+
+  // useFocusEffect ahora solo llama a nuestra nueva función
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData(false); // Llama a la función de carga
+    }, [fetchData]) // Depende de fetchData
+  );
+
+  // --- 5. AÑADIR LA FUNCIÓN onRefresh ---
+  const onRefresh = useCallback(() => {
+    setRefreshing(true); // Inicia la animación de "cargando"
+    fetchData(true); // Llama a fetchData indicando que es un refresh
+  }, [fetchData]);
+  // ---
+
   const H_PADDING = 16;
+  // ... (El resto de tus constantes y lógica de UI - sin cambios)
   const GRID_GAP = 10;
   const actionSize = Math.floor((width - H_PADDING * 2 - GRID_GAP * 3) / 4);
   const balanceFont = width < 360 ? 28 : width < 400 ? 32 : 40;
@@ -130,6 +162,7 @@ export default function HomeScreen() {
 
   const quickActions = useMemo(
     () => [
+      // ... (tus acciones rápidas - sin cambios)
       {
         key: "enviar",
         label: "Enviar",
@@ -155,11 +188,20 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? "#0F172A" : "#F8FAFC" }}>
+      {/* --- 6. AÑADIR refreshControl AL ScrollView --- */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDark ? "#FFFFFF" : "#0369A1"} // Color de la ruedita
+          />
+        }
       >
+        {/* ... (Todo tu JSX de la tarjeta de saldo, acciones, etc. - sin cambios) ... */}
         <View
           style={[
             styles.balanceCard,
@@ -184,7 +226,13 @@ export default function HomeScreen() {
 
           <View style={styles.balanceMainRow}>
             <ThemedText
-              style={[styles.balanceAmount, { fontSize: balanceFont }]}
+              style={[
+                styles.balanceAmount,
+                {
+                  fontSize: balanceFont,
+                  lineHeight: balanceFont * 1.2,
+                },
+              ]}
             >
               {balanceText}
             </ThemedText>
@@ -283,7 +331,7 @@ export default function HomeScreen() {
         <ThemedView
           style={[styles.transactionsList, { paddingHorizontal: H_PADDING }]}
         >
-          {accLoading && (
+          {accLoading && !refreshing && ( // 👈 Solo mostrar si no es un refresh
             <ThemedText style={{ opacity: 0.7, paddingVertical: 12 }}>
               Cargando transacciones…
             </ThemedText>
@@ -370,6 +418,7 @@ export default function HomeScreen() {
         </ThemedView>
       </ScrollView>
 
+      {/* ... (Tu FAB y Modal - sin cambios) ... */}
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: tintColor }]}
         onPress={() => setChatVisible(true)}
@@ -435,6 +484,7 @@ export default function HomeScreen() {
 const CARD_RADIUS = 20;
 
 const styles = StyleSheet.create({
+  // ... (Todos tus estilos - sin cambios)
   scrollView: {
     flex: 1,
   },
@@ -468,7 +518,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   balanceMainRow: {
-    marginTop: 4,
+    marginTop: 10,
     marginBottom: 2,
     flexDirection: "row",
     alignItems: "center",

@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function TransferScreen() {
   const router = useRouter();
@@ -44,18 +43,30 @@ export default function TransferScreen() {
             amount: montoNum,
             description,
             transaction_date: new Date().toISOString().split('T')[0],
-            status: 'pending',
+            status: 'completed', // 'pending' o 'completed'
           }),
         }
       );
 
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      // --- ¡LA MODIFICACIÓN IMPORTANTE! ---
+      if (!response.ok) {
+        // Si la respuesta es un error (como 400),
+        // leemos el JSON del error para ver el mensaje.
+        const errorData = await response.json();
+        
+        // Lanzamos un error con el mensaje específico de la API
+        throw new Error(errorData.message || `Error HTTP ${response.status}`);
+      }
+      // --- FIN DE LA MODIFICACIÓN ---
+
       const data = await response.json();
       Alert.alert('✅ Transferencia exitosa', `ID de transacción: ${data._id}`);
       router.back();
+
     } catch (err: any) {
       console.error(err);
-      Alert.alert('Error', err?.message ?? 'No se pudo completar la transferencia');
+      // Ahora la alerta mostrará el mensaje útil de la API
+      Alert.alert('Error en la transferencia', err?.message ?? 'No se pudo completar la operación');
     } finally {
       setLoading(false);
     }
