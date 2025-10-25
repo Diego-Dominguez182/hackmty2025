@@ -124,9 +124,9 @@ export default function HomeScreen() {
   const balanceText = hidden
     ? "•••••••"
     : balanceNumber.toLocaleString("es-MX", {
-        style: "currency",
-        currency: "MXN",
-      });
+      style: "currency",
+      currency: "MXN",
+    });
 
   const quickActions = useMemo(
     () => [
@@ -235,7 +235,7 @@ export default function HomeScreen() {
                 } else if (a.key === "recibir") {
                   // lógica futura (ej. mostrar QR)
                 } else if (a.key === "pagar") {
-                  // lógica futura
+                  router.push("/(tabs)/payScreen");
                 } else if (a.key === "cambiar") {
                   // lógica futura
                 }
@@ -273,7 +273,7 @@ export default function HomeScreen() {
           ]}
         >
           <ThemedText type="subtitle">Transacciones recientes</ThemedText>
-          <Pressable hitSlop={8} onPress={() => {}}>
+          <Pressable hitSlop={8} onPress={() => { }}>
             <ThemedText style={[styles.link, { color: tintColor }]}>
               Ver todas
             </ThemedText>
