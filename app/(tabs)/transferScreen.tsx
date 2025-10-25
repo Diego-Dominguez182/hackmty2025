@@ -179,6 +179,17 @@ export default function TransferScreen() {
           />
         </View>
 
+                <View style={styles.inputGroup}>
+          <ThemedText style={styles.label}>Monto</ThemedText>
+          <TextInput
+            placeholder="Descripción"
+            placeholderTextColor="#94A3B8"
+            value={description}
+            onChangeText={setDescription}
+            style={[styles.input, isDark && styles.inputDark]}
+          />
+        </View>
+
         <TouchableOpacity
           style={[styles.button, { backgroundColor: tintColor }]}
           onPress={handleTransfer}
