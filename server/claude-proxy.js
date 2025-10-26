@@ -7,6 +7,9 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 
 const app = express();
+app.use(cors({
+    origin: '*', // Permitir todas las solicitudes (ajusta según sea necesario)
+}));
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());

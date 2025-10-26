@@ -6,22 +6,22 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    RefreshControl, // <--- AÑADIDO (1. Importar)
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  RefreshControl, // <--- AÑADIDO (1. Importar)
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
 } from "react-native";
 
 export default function HomeScreen() {
@@ -92,7 +92,7 @@ export default function HomeScreen() {
         [transactions, visibleCount]
     );
 
-    const CLAUDE_PROXY_URL = "http://localhost:3000/claude";
+    const CLAUDE_PROXY_URL = "http://172.20.10.6:3000/claude";
 
 
     const sendMessage = async () => {
