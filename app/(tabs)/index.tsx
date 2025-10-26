@@ -8,21 +8,21 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    RefreshControl, // <--- AÑADIDO (1. Importar)
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View
+  ActivityIndicator,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  RefreshControl, // <--- AÑADIDO (1. Importar)
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
 } from "react-native";
 
 export default function HomeScreen() {
@@ -458,6 +458,7 @@ export default function HomeScreen() {
                                         if (a.key === "enviar") {
                                             router.push("/(tabs)/transferScreen");
                                         } else if (a.key === "recibir") {
+                                            router.push("/(tabs)/recibirScreen");
                                         } else if (a.key === "pagar") {
                                             router.push("/(tabs)/payScreen");
                                         } else if (a.key === "cambiar") {
