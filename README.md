@@ -1,5 +1,5 @@
 # HackMTY_FALCONS
-![hack](https://github.com/user-attachments/assets/35470f37-40b9-4397-a1e9-1eea325a3b5d)
+
 This is a demo Expo app created for the hackathon HackMTY 2025.
 The app consist of a generic banking app to show our solution, an AI assistant integrated within any banking app, and a Simple UI mode for accessibility and simplifying the management of your finances. 
 
