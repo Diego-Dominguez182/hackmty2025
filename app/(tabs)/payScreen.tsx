@@ -15,28 +15,15 @@ export default function PayScreen() {
   const isDark = (colorScheme ?? "light") === "dark";
   const tint = Colors[colorScheme ?? "light"].tint;
   const router = useRouter();
-
-  // Si algún día llegas aquí con params, ej: accountId
   const { accountId } = useLocalSearchParams<{ accountId?: string }>();
-
-  // ⚙️ CONFIG API
   const API_KEY = "2cbc508da1f232ec2f27f7fc79a2d9ba";
-  const ACCOUNT_ID = accountId || "68fc67519683f20dd51a3f65"; // misma cuenta demo que usas en Home
-
-  // 🧭 Estado del formulario
+  const ACCOUNT_ID = accountId || "68fc67519683f20dd51a3f65";
   const [mode, setMode] = useState<PayMode>("servicio");
   const [amount, setAmount] = useState<string>("");
   const [concept, setConcept] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-
-  // Servicio (merchant) seleccionado
   const [serviceKey, setServiceKey] = useState<string>("internet");
-  // Tarjeta destino (id de cuenta de crédito)
-  const [creditAccountId, setCreditAccountId] = useState<string>("68fc67519683f20dd51a3f65"); // ajusta aquí si tienes cuenta crédito distinta
-
-  // 🔖 Catálogo simple de servicios -> merchant_id de Nessie
-  // Puedes poblarlos desde /merchants y guardar ids reales
-  // o usar estos de ejemplo (reemplázalos por los que obtengas).
+  const [creditAccountId, setCreditAccountId] = useState<string>("68fc67519683f20dd51a3f65");
   const SERVICES = useMemo(() => ([
     { key: "internet",  label: "Internet",      icon: "wifi",                 merchantId: "57cf75cea73e494d8675ec49" },
     { key: "luz",       label: "Luz",           icon: "bolt.fill",            merchantId: "57cf75cea73e494d8675ec4a" },
@@ -48,15 +35,11 @@ export default function PayScreen() {
 
   const money = (n: number) =>
     Number(n).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
-
-  // ✅ Validaciones básicas
   const parsedAmount = Number(amount);
   const canSubmit =
     !loading &&
     parsedAmount > 0 &&
     (mode === "servicio" ? Boolean(selectedService?.merchantId) : Boolean(creditAccountId));
-
-  // 🧪 Helper request
   async function jsonFetch(url: string, init?: RequestInit) {
     const res = await fetch(url, {
       ...init,
@@ -78,19 +61,9 @@ export default function PayScreen() {
     try {
       setLoading(true);
 
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const today = new Date().toISOString().slice(0, 10);
 
       if (mode === "servicio") {
-        // FLOW: Purchase (cargo al comercio)
-        // POST /accounts/:id/purchases?key=API_KEY
-        // body esperado por Nessie:
-        // {
-        //   "merchant_id": "...",
-        //   "medium": "balance",
-        //   "purchase_date": "YYYY-MM-DD",
-        //   "amount": number,
-        //   "description": "texto"
-        // }
         const body = {
           merchant_id: selectedService.merchantId,
           medium: "balance",
@@ -109,16 +82,6 @@ export default function PayScreen() {
           `Servicio: ${selectedService.label}\nMonto: ${money(parsedAmount)}\nFolio: ${data?.objectCreated?._id || "—"}`
         );
       } else {
-        // FLOW: Transferencia (pago de tarjeta)
-        // POST /accounts/:id/transfers?key=API_KEY
-        // body esperado por Nessie:
-        // {
-        //   "medium": "balance",
-        //   "payee_id": "idCuentaDestino",
-        //   "amount": number,
-        //   "transaction_date": "YYYY-MM-DD",
-        //   "description": "texto"
-        // }
         const body = {
           medium: "balance",
           payee_id: String(creditAccountId),
@@ -137,8 +100,6 @@ export default function PayScreen() {
           `Destino: ${creditAccountId}\nMonto: ${money(parsedAmount)}\nFolio: ${data?.objectCreated?._id || "—"}`
         );
       }
-
-      // Limpia el form
       setAmount("");
       setConcept("");
     } catch (err: any) {
@@ -151,7 +112,6 @@ export default function PayScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: isDark ? "#0F172A" : "#F8FAFC" }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} hitSlop={8}>
             <IconSymbol name="chevron.left" size={22} color={isDark ? "#E2E8F0" : "#0F172A"} />
@@ -159,8 +119,6 @@ export default function PayScreen() {
           <ThemedText type="title" style={{ fontSize: 20, fontFamily: Fonts.rounded }}>Realizar pago</ThemedText>
           <View style={{ width: 22 }} />
         </View>
-
-        {/* Modo de pago */}
         <ThemedText type="subtitle" style={{ marginTop: 8, marginBottom: 10 }}>¿Qué quieres pagar?</ThemedText>
         <View style={styles.segment}>
           <SegmentItem
@@ -176,8 +134,6 @@ export default function PayScreen() {
             label="Tarjeta"
           />
         </View>
-
-        {/* Bloque servicio */}
         {mode === "servicio" && (
           <ThemedView style={[styles.card, { backgroundColor: isDark ? "#0B3B5E" : "#E0F2FE" }]}>
             <ThemedText type="subtitle" style={{ marginBottom: 12 }}>Selecciona servicio</ThemedText>
@@ -196,8 +152,6 @@ export default function PayScreen() {
             </View>
           </ThemedView>
         )}
-
-        {/* Bloque tarjeta */}
         {mode === "tarjeta" && (
           <ThemedView style={[styles.card, { backgroundColor: isDark ? "#042F2E" : "#D1FAE5" }]}>
             <ThemedText type="subtitle" style={{ marginBottom: 12 }}>Cuenta de tarjeta a pagar</ThemedText>
@@ -217,8 +171,6 @@ export default function PayScreen() {
             </ThemedText>
           </ThemedView>
         )}
-
-        {/* Monto y concepto */}
         <ThemedView style={[styles.card, { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" }]}>
           <ThemedText type="subtitle" style={{ marginBottom: 12 }}>Detalle del pago</ThemedText>
 
@@ -252,8 +204,6 @@ export default function PayScreen() {
             </ThemedText>
           </View>
         </ThemedView>
-
-        {/* Botón pagar */}
         <TouchableOpacity
           disabled={!canSubmit}
           onPress={handlePay}
@@ -279,8 +229,6 @@ export default function PayScreen() {
     </View>
   );
 }
-
-// --- Componentes UI pequeños para mantener tu estilo ---
 function SegmentItem({
   selected,
   onPress,

@@ -1,6 +1,3 @@
-// Minimal Claude (Anthropic) proxy for local development
-// Usage: set CLAUDE_API_KEY env var and run `node claude-proxy.js`
-
 const express = require("express");
 const fetch = require("node-fetch");
 const bodyParser = require("body-parser");
@@ -8,7 +5,7 @@ const cors = require("cors");
 
 const app = express();
 app.use(cors({
-    origin: '*', // Permitir todas las solicitudes (ajusta según sea necesario)
+    origin: '*',
 }));
 const PORT = process.env.PORT || 3000;
 
@@ -42,7 +39,7 @@ app.post("/claude", async (req, res) => {
                     { "role": "user", "content": message }
                 ]
             }),
-        }); 
+        });
 
         if (!resp.ok) {
             const txt = await resp.text();
@@ -52,18 +49,18 @@ app.post("/claude", async (req, res) => {
 
         const json = await resp.json();
 
-        // Extrae solo el texto del primer bloque de content
+
         let reply = "";
-if (json?.content && Array.isArray(json.content) && json.content[0]?.text) {
-    reply = json.content[0].text;
-} else {
-    reply = JSON.stringify(json);
-}
+        if (json?.content && Array.isArray(json.content) && json.content[0]?.text) {
+            reply = json.content[0].text;
+        } else {
+            reply = JSON.stringify(json);
+        }
 
-// Eliminar asteriscos de la respuesta
-reply = reply.replace(/\*/g, ''); // Elimina todos los asteriscos
 
-return res.json({ reply });
+        reply = reply.replace(/\*/g, '');
+
+        return res.json({ reply });
     } catch (err) {
         console.error("Claude proxy error:", err);
         if (err?.response) {

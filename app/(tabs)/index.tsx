@@ -6,22 +6,22 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl, // <--- AÑADIDO (1. Importar)
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View
 } from "react-native";
 
 export default function HomeScreen() {
@@ -36,7 +36,7 @@ export default function HomeScreen() {
     const [accLoading, setAccLoading] = useState<boolean>(true);
     const [simpleMode, setSimpleMode] = useState<boolean>(false);
 
-    const [refreshing, setRefreshing] = useState(false); // <--- AÑADIDO (2. Declarar estado)
+    const [refreshing, setRefreshing] = useState(false);
 
     const tintColor = Colors[colorScheme ?? "light"].tint;
     const isDark = (colorScheme ?? "light") === "dark";
@@ -71,7 +71,6 @@ export default function HomeScreen() {
     };
 
     const pickIcon = (desc: string = "") => {
-        // ... (tu función pickIcon - sin cambios)
         const s = desc.toLowerCase();
         if (s.includes("taxi")) return "car.fill";
         if (s.includes("transporte")) return "tram.fill.tunnel";
@@ -137,7 +136,6 @@ export default function HomeScreen() {
         }
     };
 
-    // --- LÓGICA DE CARGA (Sin cambios, ya incluía setRefreshing) ---
     const fetchData = useCallback(async (isRefreshing = false) => {
         if (!isRefreshing) {
             setAccLoading(true);
@@ -175,22 +173,17 @@ export default function HomeScreen() {
             const dataTransfers = await resTransfers.json();
 
             setAccount(dataAccount);
-            // 1. Combinar ambas listas
             const allTransactions = [...dataPurchases, ...dataTransfers];
-
-            // 2. Ordenar la lista combinada por fecha (más reciente primero)
             allTransactions.sort((a, b) => {
                 try {
-                    const dateA = new Date(a.transaction_date || a.purchase_date); //
-                    const dateB = new Date(b.transaction_date || b.purchase_date); //
-                    return dateB.getTime() - dateA.getTime(); //
+                    const dateA = new Date(a.transaction_date || a.purchase_date);
+                    const dateB = new Date(b.transaction_date || b.purchase_date);
+                    return dateB.getTime() - dateA.getTime();
                 } catch (e) {
-                    console.error("Error al parsear fecha para ordenar:", e, a, b); // Ver si hay errores
-                    return 0; // No mover si hay error al convertir la fecha
+                    console.error("Error al parsear fecha para ordenar:", e, a, b);
+                    return 0;
                 }
             });
-
-            // 3. Guardar la lista YA ORDENADA en el estado
             setTransactions(allTransactions);
         } catch (err: any) {
             setAccError(err?.message ?? "Error desconocido");
@@ -199,7 +192,7 @@ export default function HomeScreen() {
             if (!isRefreshing) {
                 setAccLoading(false);
             }
-            setRefreshing(false); // Detener el "pull-to-refresh"
+            setRefreshing(false);
         }
     }, []);
 
@@ -209,13 +202,11 @@ export default function HomeScreen() {
         }, [fetchData])
     );
 
-    // --- FUNCIÓN onRefresh (Sin cambios, ya estaba correcta) ---
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         fetchData(true);
     }, [fetchData]);
 
-    // ... (El resto de tus constantes: H_PADDING, quickActions, frequentContacts, etc. no cambian) ...
     const H_PADDING = 16;
     const GRID_GAP = 10;
     const actionSize = Math.floor((width - H_PADDING * 2 - GRID_GAP * 3) / 4);
@@ -272,18 +263,15 @@ export default function HomeScreen() {
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
-                // <--- AÑADIDO (3. Conectar el RefreshControl) ---
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        tintColor={isDark ? "#FFFFFF" : "#0369A1"} // Color de la ruedita
+                        tintColor={isDark ? "#FFFFFF" : "#0369A1"}
                     />
-                }
-            // --- FIN DE LA ADICIÓN ---
-            >
+                }>
+
                 {simpleMode ? (
-                    // ... (Tu UI de Modo Simple - sin cambios) ...
                     <View style={styles.simpleModeContainer}>
                         <TouchableOpacity
                             style={[
@@ -388,7 +376,6 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    // ... (Tu UI de Modo Normal - sin cambios en la estructura) ...
                     <>
                         <View
                             style={[
@@ -525,7 +512,6 @@ export default function HomeScreen() {
                                 { paddingHorizontal: H_PADDING },
                             ]}
                         >
-                            {/* <--- MODIFICADO (4. Mejorar lógica de carga) --- */}
                             {accLoading && !refreshing && (
                                 <ThemedText style={{ opacity: 0.7, paddingVertical: 12 }}>
                                     Cargando transacciones…
@@ -618,8 +604,6 @@ export default function HomeScreen() {
                     </>
                 )}
             </ScrollView>
-
-            {/* ... (Tu FAB y Modal - sin cambios) ... */}
             {(
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: tintColor }]}
@@ -729,8 +713,7 @@ export default function HomeScreen() {
                                     />
                                     <TouchableOpacity
                                         onPress={() => {
-                                            // Simulación de activación de voz
-                                            alert('Simulando activación de modo voz estilo Bixby/GPT.');
+                                            alert('Simulando activación de modo voz');
                                         }}
                                         style={{
                                             backgroundColor: '#EAF1FB',
@@ -771,7 +754,6 @@ export default function HomeScreen() {
 const CARD_RADIUS = 20;
 
 const styles = StyleSheet.create({
-    // ... (Todos tus estilos - sin cambios)
     scrollView: {
         flex: 1,
     },
@@ -784,7 +766,6 @@ const styles = StyleSheet.create({
         borderRadius: CARD_RADIUS,
         padding: 20,
         marginBottom: 4,
-        // marginTop: 36, // <--- MODIFICADO (Eliminado para que se alinee con la navbar)
         overflow: "hidden",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },

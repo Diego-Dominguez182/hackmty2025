@@ -9,12 +9,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Pressable, Share, StyleSheet, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 
-// ========================
-// Presentational component
-// ========================
+
 export type BankInfoProps = {
     bankName: string;
-    clabe: string; // 18 dígitos México
+    clabe: string;
     accountNumber: string;
     alias?: string;
     holderName: string;
@@ -53,7 +51,7 @@ Alias: ${data.alias}` : ""}`;
         } catch { }
     };
 
-    // Exporta QR como PNG y abre el share sheet
+
     const exportQrAndShare = async () => {
         if (!qrRef.current) return;
         setIsExporting(true);
@@ -68,7 +66,7 @@ Alias: ${data.alias}` : ""}`;
             });
             await Share.share({ url: filename, title: "CLABE QR" });
         } catch (err) {
-            // noop: podrías conectar con tu logger interno
+
         } finally {
             setIsExporting(false);
         }
@@ -126,9 +124,7 @@ Alias: ${data.alias}` : ""}`;
     );
 }
 
-// ========================
-// UI Subcomponent
-// ========================
+
 function FieldRow({ label, value, onCopy, mono }: { label: string; value: string; onCopy: () => void; mono?: boolean }) {
     return (
         <View style={styles.row}>
@@ -145,25 +141,7 @@ function FieldRow({ label, value, onCopy, mono }: { label: string; value: string
     );
 }
 
-// ========================
-// Optional: Contenedor de integración
-// ========================
-// Si ya tienes un store/context global, mapea ahí tus campos y pásalos al componente presentacional.
-// Ejemplo con un "useAppStore" (ajústalo a tu proyecto):
-// import { useAppStore } from "@/store/app";
-// export default function RecibirScreenContainer() {
-//   const account = useAppStore((s) => s.account);
-//   const data: BankInfoProps = {
-//     bankName: account?.bankName ?? "",
-//     clabe: account?.clabe ?? "",
-//     accountNumber: account?.number ?? "",
-//     alias: account?.alias ?? undefined,
-//     holderName: account?.holderName ?? "",
-//   };
-//   return <RecibirScreen data={data} />;
-// }
 
-// Si no tienes store, exporta directamente con datos hasta que conectes el backend:
 export default function RecibirScreenDemo() {
     const data: BankInfoProps = {
         bankName: "Capital One",

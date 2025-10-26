@@ -54,8 +54,6 @@ export default function ConfirmarScreen() {
 
       <TouchableOpacity
         onPress={() => {
-          // Aquí harías la llamada al backend/SDK de retiro
-          // y luego navegas o muestras el folio/QR:
           alert("Retiro confirmado ✅");
           navigation.goBack();
         }}

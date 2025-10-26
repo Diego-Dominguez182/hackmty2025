@@ -106,16 +106,14 @@ export default function TransferScreen() {
         }
       );
 
-      // --- ¡LA MODIFICACIÓN IMPORTANTE! ---
+
       if (!response.ok) {
-        // Si la respuesta es un error (como 400),
-        // leemos el JSON del error para ver el mensaje.
+
         const errorData = await response.json();
 
-        // Lanzamos un error con el mensaje específico de la API
+
         throw new Error(errorData.message || `Error HTTP ${response.status}`);
       }
-      // --- FIN DE LA MODIFICACIÓN ---
 
       const data = await response.json();
       console.log("Transfer created:", data.objectCreated._id);
@@ -126,7 +124,7 @@ export default function TransferScreen() {
       router.replace("/(tabs)");
     } catch (err: any) {
       console.error(err);
-      // Ahora la alerta mostrará el mensaje útil de la API
+
       Alert.alert(
         "Error en la transferencia",
         err?.message ?? "No se pudo completar la operación"
