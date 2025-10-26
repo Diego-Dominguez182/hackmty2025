@@ -17,7 +17,6 @@ app.post("/claude", async (req, res) => {
     if (!message) return res.status(400).json({ error: "message required" });
 
     const API_KEY = process.env.CLAUDE_API_KEY;
-    const CLAUDE_SYSTEM = "Eres un asistente de app bancaria. Respondes de forma concisa y clara a las preguntas del usuario sobre sus finanzas personales, gastos, ingresos y presupuestos. Utilizas un lenguaje amigable y profesional. SI te pregunto sobre gastos de esta semana, tu dame datos como si fueran reales";
     console.log("Using CLAUDE_SYSTEM:", CLAUDE_SYSTEM);
     if (!API_KEY) return res.status(500).json({ error: "CLAUDE_API_KEY not set on server" });
 
