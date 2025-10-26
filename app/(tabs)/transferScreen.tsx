@@ -1,13 +1,24 @@
-import { ThemedText } from '@/components/themed-text';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { ThemedText } from "@/components/themed-text";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function TransferScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const colorScheme = useColorScheme();
   const tintColor = Colors[colorScheme ?? "light"].tint;
   const isDark = (colorScheme ?? "light") === "dark";
@@ -17,6 +28,13 @@ export default function TransferScreen() {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (params.name) setName(params.name as string);
+    if (params.to) setAccountNumber(params.to as string);
+    if (params.amount) setAmount(params.amount as string);
+    if (params.description) setDescription(params.description as string);
+  }, []);
 
   const BASE = "http://api.nessieisreal.com";
   const APIKEY = "2cbc508da1f232ec2f27f7fc79a2d9ba";
@@ -75,15 +93,15 @@ export default function TransferScreen() {
       const response = await fetch(
         `${BASE}/accounts/${PAYER_ID}/transfers?key=${APIKEY}`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            medium: 'balance',
+            medium: "balance",
             payee_id: accountNumber,
             amount: montoNum,
             description,
-            transaction_date: new Date().toISOString().split('T')[0],
-            status: 'completed', // 'pending' o 'completed'
+            transaction_date: new Date().toISOString().split("T")[0],
+            status: "completed", // 'pending' o 'completed'
           }),
         }
       );
@@ -93,7 +111,7 @@ export default function TransferScreen() {
         // Si la respuesta es un error (como 400),
         // leemos el JSON del error para ver el mensaje.
         const errorData = await response.json();
-        
+
         // Lanzamos un error con el mensaje específico de la API
         throw new Error(errorData.message || `Error HTTP ${response.status}`);
       }
@@ -105,12 +123,14 @@ export default function TransferScreen() {
         "Transferencia creada",
         `ID: ${data.objectCreated._id ?? "—"}`
       );
-      router.back();
-
+      router.replace("/(tabs)");
     } catch (err: any) {
       console.error(err);
       // Ahora la alerta mostrará el mensaje útil de la API
-      Alert.alert('Error en la transferencia', err?.message ?? 'No se pudo completar la operación');
+      Alert.alert(
+        "Error en la transferencia",
+        err?.message ?? "No se pudo completar la operación"
+      );
     } finally {
       setLoading(false);
     }
@@ -179,10 +199,10 @@ export default function TransferScreen() {
           />
         </View>
 
-                <View style={styles.inputGroup}>
-          <ThemedText style={styles.label}>Monto</ThemedText>
+        <View style={styles.inputGroup}>
+          <ThemedText style={styles.label}>Descripción</ThemedText>
           <TextInput
-            placeholder="Descripción"
+            placeholder="Descripción de la transferencia"
             placeholderTextColor="#94A3B8"
             value={description}
             onChangeText={setDescription}

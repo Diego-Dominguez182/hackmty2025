@@ -6,20 +6,22 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList, Image, Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TextInput,
-    TouchableOpacity,
-    useWindowDimensions,
-    View
+  ActivityIndicator,
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  RefreshControl, // <--- AÑADIDO (1. Importar)
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+  Image
 } from "react-native";
 
 export default function HomeScreen() {
@@ -319,7 +321,6 @@ export default function HomeScreen() {
                                 styles.simpleCard,
                                 { backgroundColor: isDark ? "#1E293B" : "#FFFFFF" },
                             ]}
-                            onPress={() => setChatVisible(true)}
                             activeOpacity={0.8}
                         >
                             <View style={styles.simpleCardHeader}>
@@ -337,12 +338,24 @@ export default function HomeScreen() {
                             <View style={styles.contactPreview}>
                                 {frequentContacts.slice(0, 3).map((contact) => (
                                     <View key={contact.id} style={styles.contactItem}>
+                                        <Pressable
+                                        onPress={() => router.push({
+                                            pathname: "/(tabs)/transferScreen",
+                                            params : {
+                                                to: contact.account,
+                                                name: contact.name,
+                                                amount: contact.lastAmount.toString(),
+                                                description: "Transferencia a " + contact.name
+
+                                            }
+                                        })}>
                                         <ThemedText style={styles.contactAvatar}>
                                             {contact.avatar}
                                         </ThemedText>
                                         <ThemedText style={styles.contactName} numberOfLines={1}>
                                             {contact.name}
                                         </ThemedText>
+                                        </Pressable>
                                     </View>
                                 ))}
                             </View>
@@ -605,7 +618,7 @@ export default function HomeScreen() {
             </ScrollView>
 
             {/* ... (Tu FAB y Modal - sin cambios) ... */}
-            { (
+            {(
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: tintColor }]}
                     onPress={() => setChatVisible(true)}
@@ -695,8 +708,8 @@ export default function HomeScreen() {
                                 />
                             </View>
 
-              <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                            <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
+                                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                                     <TextInput
                                         value={inputText}
                                         onChangeText={setInputText}
@@ -743,14 +756,14 @@ export default function HomeScreen() {
                                             <IconSymbol name="paperplane.fill" size={20} color="#fff" />
                                         )}
                                     </TouchableOpacity>
-                </View>
-              </View>
-            </KeyboardAvoidingView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </View>
-  );
+                                </View>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </Pressable>
+                </Pressable>
+            </Modal>
+        </View>
+    );
 }
 
 const CARD_RADIUS = 20;
@@ -1084,6 +1097,7 @@ const styles = StyleSheet.create({
     },
     contactAvatar: {
         fontSize: 20,
+        alignSelf: "center",
     },
     contactName: {
         fontSize: 12,
