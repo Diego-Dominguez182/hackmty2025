@@ -6,22 +6,22 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl, // <--- AÑADIDO (1. Importar)
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-  Image
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    RefreshControl, // <--- AÑADIDO (1. Importar)
+    ScrollView,
+    StyleSheet,
+    Switch,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View
 } from "react-native";
 
 export default function HomeScreen() {
@@ -231,10 +231,10 @@ export default function HomeScreen() {
 
     const quickActions = useMemo(
         () => [
-            { key: "enviar", label: "Enviar", bg: "#0F766E", localIcon: require('@/assets/images/send_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg') },
-            { key: "recibir", label: "Recibir", bg: "#065F46", localIcon: require('@/assets/images/approval_delegation_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg') },
-            { key: "pagar", label: "Pagar", bg: "#0C4A6E", localIcon: require('@/assets/images/payments_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg') },
-            { key: "cambiar", label: "Retirar", bg: "#10B981", localIcon: require('@/assets/images/payment_arrow_down_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg') },
+            { key: "enviar", label: "Enviar", bg: "#0F766E", localIcon: require('@/assets/images/send_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.png') },
+            { key: "recibir", label: "Recibir", bg: "#065F46", localIcon: require('@/assets/images/approval_delegation_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.png') },
+            { key: "pagar", label: "Pagar", bg: "#0C4A6E", localIcon: require('@/assets/images/payments_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.png') },
+            { key: "cambiar", label: "Retirar", bg: "#10B981", localIcon: require('@/assets/images/payment_arrow_down_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.png') },
         ],
         []
     );
@@ -339,22 +339,22 @@ export default function HomeScreen() {
                                 {frequentContacts.slice(0, 3).map((contact) => (
                                     <View key={contact.id} style={styles.contactItem}>
                                         <Pressable
-                                        onPress={() => router.push({
-                                            pathname: "/(tabs)/transferScreen",
-                                            params : {
-                                                to: contact.account,
-                                                name: contact.name,
-                                                amount: contact.lastAmount.toString(),
-                                                description: "Transferencia a " + contact.name
+                                            onPress={() => router.push({
+                                                pathname: "/(tabs)/transferScreen",
+                                                params: {
+                                                    to: contact.account,
+                                                    name: contact.name,
+                                                    amount: contact.lastAmount.toString(),
+                                                    description: "Transferencia a " + contact.name
 
-                                            }
-                                        })}>
-                                        <ThemedText style={styles.contactAvatar}>
-                                            {contact.avatar}
-                                        </ThemedText>
-                                        <ThemedText style={styles.contactName} numberOfLines={1}>
-                                            {contact.name}
-                                        </ThemedText>
+                                                }
+                                            })}>
+                                            <ThemedText style={styles.contactAvatar}>
+                                                {contact.avatar}
+                                            </ThemedText>
+                                            <ThemedText style={styles.contactName} numberOfLines={1}>
+                                                {contact.name}
+                                            </ThemedText>
                                         </Pressable>
                                     </View>
                                 ))}
