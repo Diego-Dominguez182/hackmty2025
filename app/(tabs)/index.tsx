@@ -8,21 +8,21 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl, // <--- AÑADIDO (1. Importar)
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
+    ActivityIndicator,
+    FlatList,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    RefreshControl, // <--- AÑADIDO (1. Importar)
+    ScrollView,
+    StyleSheet,
+    Switch,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View
 } from "react-native";
 
 export default function HomeScreen() {
@@ -44,18 +44,18 @@ export default function HomeScreen() {
     const { width } = useWindowDimensions();
     const [visibleCount, setVisibleCount] = useState(8);
 
-  // --- Chat state ---
-  const [messages, setMessages] = useState<
-    { id: string; role: "user" | "assistant"; text: string }[]
-  >([
-    {
-      id: "welcome",
-      role: "assistant",
-      text: "¡Hola! 👋 Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?",
-    },
-  ]);
-  const [inputText, setInputText] = useState("");
-  const [sending, setSending] = useState(false);
+    // --- Chat state ---
+    const [messages, setMessages] = useState<
+        { id: string; role: "user" | "assistant"; text: string }[]
+    >([
+        {
+            id: "welcome",
+            role: "assistant",
+            text: "¡Hola! 👋 Soy tu asistente financiero. ¿En qué puedo ayudarte hoy?",
+        },
+    ]);
+    const [inputText, setInputText] = useState("");
+    const [sending, setSending] = useState(false);
 
     const ACCOUNT_ID = account?._id ?? "68fc67519683f20dd51a3f65";
 
@@ -93,50 +93,50 @@ export default function HomeScreen() {
         [transactions, visibleCount]
     );
 
-const CLAUDE_PROXY_URL = "http://localhost:3000/claude";
+    const CLAUDE_PROXY_URL = "http://localhost:3000/claude";
 
 
-  const sendMessage = async () => {
-    const text = inputText.trim();
-    if (!text) return;
-  const userMsg = { id: Date.now().toString(), role: "user" as const, text };
-    setMessages((m) => [...m, userMsg]);
-    setInputText("");
-    Keyboard.dismiss();
-    setSending(true);
+    const sendMessage = async () => {
+        const text = inputText.trim();
+        if (!text) return;
+        const userMsg = { id: Date.now().toString(), role: "user" as const, text };
+        setMessages((m) => [...m, userMsg]);
+        setInputText("");
+        Keyboard.dismiss();
+        setSending(true);
 
-    try {
-      const res = await fetch(CLAUDE_PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
-      });
+        try {
+            const res = await fetch(CLAUDE_PROXY_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text }),
+            });
 
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(body || `HTTP ${res.status}`);
-      }
+            if (!res.ok) {
+                const body = await res.text();
+                throw new Error(body || `HTTP ${res.status}`);
+            }
 
-      const data = await res.json();
-      const replyText = data.reply ?? data.output_text ?? JSON.stringify(data);
-      const assistantMsg = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant" as const,
-        text: String(replyText),
-      };
-      setMessages((m) => [...m, assistantMsg]);
-    } catch (err: any) {
-      const errMsg = {
-        id: (Date.now() + 2).toString(),
-        role: "assistant" as const,
-        text: "Error al conectar con el asistente: " + (err?.message ?? "desconocido"),
-      };
-      setMessages((m) => [...m, errMsg]);
-      console.error("Chat error:", err);
-    } finally {
-      setSending(false);
-    }
-  };
+            const data = await res.json();
+            const replyText = data.reply ?? data.output_text ?? JSON.stringify(data);
+            const assistantMsg = {
+                id: (Date.now() + 1).toString(),
+                role: "assistant" as const,
+                text: String(replyText),
+            };
+            setMessages((m) => [...m, assistantMsg]);
+        } catch (err: any) {
+            const errMsg = {
+                id: (Date.now() + 2).toString(),
+                role: "assistant" as const,
+                text: "Error al conectar con el asistente: " + (err?.message ?? "desconocido"),
+            };
+            setMessages((m) => [...m, errMsg]);
+            console.error("Chat error:", err);
+        } finally {
+            setSending(false);
+        }
+    };
 
     // --- LÓGICA DE CARGA (Sin cambios, ya incluía setRefreshing) ---
     const fetchData = useCallback(async (isRefreshing = false) => {
@@ -614,128 +614,128 @@ const CLAUDE_PROXY_URL = "http://localhost:3000/claude";
                 </TouchableOpacity>
             )}
 
-      <Modal
-        animationType="slide"
-        transparent
-        visible={chatVisible}
-        onRequestClose={() => setChatVisible(false)}
-      >
-        <Pressable
-          style={styles.chatOverlay}
-          onPress={() => setChatVisible(false)}
-        >
-          <Pressable
-            style={styles.chatBox}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={styles.chatHeader}>
-              <View style={styles.chatHeaderLeft}>
-                <View
-                  style={[styles.aiIndicator, { backgroundColor: tintColor }]}
-                />
-                <ThemedText type="subtitle">Asistente IA</ThemedText>
-              </View>
-              <TouchableOpacity
-                onPress={() => setChatVisible(false)}
-                hitSlop={8}
-              >
-                <IconSymbol
-                  name="xmark.circle.fill"
-                  size={28}
-                  color={isDark ? "#94A3B8" : "#64748B"}
-                />
-              </TouchableOpacity>
-            </View>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : undefined}
-              style={{ flex: 1 }}
+            <Modal
+                animationType="slide"
+                transparent
+                visible={chatVisible}
+                onRequestClose={() => setChatVisible(false)}
             >
-              <View style={styles.chatContent}>
-                <FlatList
-                  data={messages}
-                  keyExtractor={(it) => it.id}
-                  renderItem={({ item }) => (
-                    <View
-                      style={[
-                        styles.messageContainer,
-                        item.role === "assistant"
-                          ? { alignItems: "flex-start" }
-                          : { alignItems: "flex-end" },
-                      ]}
+                <Pressable
+                    style={styles.chatOverlay}
+                    onPress={() => setChatVisible(false)}
+                >
+                    <Pressable
+                        style={styles.chatBox}
+                        onPress={(e) => e.stopPropagation()}
                     >
-                      <View
-                        style={[
-                          styles.messageBubble,
-                          {
-                            backgroundColor:
-                              item.role === "assistant"
-                                ? isDark
-                                  ? "#1E293B"
-                                  : "#F1F5F9"
-                                : isDark
-                                ? "#0B1220"
-                                : "#0369A1",
-                          },
-                        ]}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.messageText,
-                            item.role === "user" && { color: "#FFF" },
-                          ]}
+                        <View style={styles.chatHeader}>
+                            <View style={styles.chatHeaderLeft}>
+                                <View
+                                    style={[styles.aiIndicator, { backgroundColor: tintColor }]}
+                                />
+                                <ThemedText type="subtitle">Asistente IA</ThemedText>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setChatVisible(false)}
+                                hitSlop={8}
+                            >
+                                <IconSymbol
+                                    name="xmark.circle.fill"
+                                    size={28}
+                                    color={isDark ? "#94A3B8" : "#64748B"}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === "ios" ? "padding" : undefined}
+                            style={{ flex: 1 }}
                         >
-                          {item.text}
-                        </ThemedText>
-                      </View>
-                    </View>
-                  )}
-                  contentContainerStyle={{ paddingBottom: 12 }}
-                  showsVerticalScrollIndicator={false}
-                />
-              </View>
+                            <View style={styles.chatContent}>
+                                <FlatList
+                                    data={messages}
+                                    keyExtractor={(it) => it.id}
+                                    renderItem={({ item }) => (
+                                        <View
+                                            style={[
+                                                styles.messageContainer,
+                                                item.role === "assistant"
+                                                    ? { alignItems: "flex-start" }
+                                                    : { alignItems: "flex-end" },
+                                            ]}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.messageBubble,
+                                                    {
+                                                        backgroundColor:
+                                                            item.role === "assistant"
+                                                                ? isDark
+                                                                    ? "#1E293B"
+                                                                    : "#F1F5F9"
+                                                                : isDark
+                                                                    ? "#0B1220"
+                                                                    : "#0369A1",
+                                                    },
+                                                ]}
+                                            >
+                                                <ThemedText
+                                                    style={[
+                                                        styles.messageText,
+                                                        item.role === "user" && { color: "#FFF" },
+                                                    ]}
+                                                >
+                                                    {item.text}
+                                                </ThemedText>
+                                            </View>
+                                        </View>
+                                    )}
+                                    contentContainerStyle={{ paddingBottom: 12 }}
+                                    showsVerticalScrollIndicator={false}
+                                />
+                            </View>
 
-              <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-                  <TextInput
-                    value={inputText}
-                    onChangeText={setInputText}
-                    placeholder="Escribe un mensaje..."
-                    placeholderTextColor="#64748B"
-                    style={{
-                      flex: 1,
-                      paddingVertical: 10,
-                      paddingHorizontal: 14,
-                      borderRadius: 999,
-                      backgroundColor: isDark ? "#0F172A" : "#F1F5F9",
-                      color: isDark ? "#E2E8F0" : "#0F172A",
-                    }}
-                    multiline
-                  />
-                  <TouchableOpacity
-                    onPress={sendMessage}
-                    disabled={sending}
-                    style={{
-                      marginLeft: 6,
-                      backgroundColor: tintColor,
-                      padding: 10,
-                      borderRadius: 12,
-                      opacity: sending ? 0.7 : 1,
-                    }}
-                  >
-                    {sending ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <IconSymbol name="paperplane.fill" size={20} color="#fff" />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </KeyboardAvoidingView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </View>
-  );
+                            <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
+                                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                                    <TextInput
+                                        value={inputText}
+                                        onChangeText={setInputText}
+                                        placeholder="Escribe un mensaje..."
+                                        placeholderTextColor="#64748B"
+                                        style={{
+                                            flex: 1,
+                                            paddingVertical: 10,
+                                            paddingHorizontal: 14,
+                                            borderRadius: 999,
+                                            backgroundColor: isDark ? "#0F172A" : "#F1F5F9",
+                                            color: isDark ? "#E2E8F0" : "#0F172A",
+                                        }}
+                                        multiline
+                                    />
+                                    <TouchableOpacity
+                                        onPress={sendMessage}
+                                        disabled={sending}
+                                        style={{
+                                            marginLeft: 6,
+                                            backgroundColor: tintColor,
+                                            padding: 10,
+                                            borderRadius: 12,
+                                            opacity: sending ? 0.7 : 1,
+                                        }}
+                                    >
+                                        {sending ? (
+                                            <ActivityIndicator color="#fff" />
+                                        ) : (
+                                            <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </Pressable>
+                </Pressable>
+            </Modal>
+        </View>
+    );
 }
 
 const CARD_RADIUS = 20;
