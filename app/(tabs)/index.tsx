@@ -605,7 +605,7 @@ export default function HomeScreen() {
             </ScrollView>
 
             {/* ... (Tu FAB y Modal - sin cambios) ... */}
-            {!simpleMode && (
+            { (
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: tintColor }]}
                     onPress={() => setChatVisible(true)}
@@ -695,8 +695,8 @@ export default function HomeScreen() {
                                 />
                             </View>
 
-                            <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
-                                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+              <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
+                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                                     <TextInput
                                         value={inputText}
                                         onChangeText={setInputText}
@@ -712,6 +712,20 @@ export default function HomeScreen() {
                                         }}
                                         multiline
                                     />
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            // Simulación de activación de voz
+                                            alert('Simulando activación de modo voz estilo Bixby/GPT.');
+                                        }}
+                                        style={{
+                                            backgroundColor: '#EAF1FB',
+                                            padding: 10,
+                                            borderRadius: 12,
+                                            marginLeft: 2,
+                                        }}
+                                    >
+                                        <IconSymbol name="mic" size={20} color={tintColor} />
+                                    </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={sendMessage}
                                         disabled={sending}
@@ -729,14 +743,14 @@ export default function HomeScreen() {
                                             <IconSymbol name="paperplane.fill" size={20} color="#fff" />
                                         )}
                                     </TouchableOpacity>
-                                </View>
-                            </View>
-                        </KeyboardAvoidingView>
-                    </Pressable>
-                </Pressable>
-            </Modal>
-        </View>
-    );
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
 }
 
 const CARD_RADIUS = 20;
@@ -925,7 +939,7 @@ const styles = StyleSheet.create({
     fab: {
         position: "absolute",
         right: 20,
-        bottom: 24,
+        bottom: 50,
         width: 64,
         height: 64,
         borderRadius: 32,
