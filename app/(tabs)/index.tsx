@@ -472,6 +472,8 @@ export default function HomeScreen() {
                                         } else if (a.key === "pagar") {
                                             router.push("/(tabs)/payScreen");
                                         } else if (a.key === "cambiar") {
+                                            router.push("/retirar/montoScreen");
+
                                         }
                                     }}
                                     style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
