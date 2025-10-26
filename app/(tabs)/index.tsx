@@ -1,5 +1,3 @@
-// Archivo: index.tsx (CORREGIDO CON PULL-TO-REFRESH)
-
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -8,21 +6,21 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl, // <--- AÑADIDO (1. Importar)
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TextInput,
-  TouchableOpacity,
-  useWindowDimensions,
-  View
+    ActivityIndicator,
+    FlatList,
+    Keyboard,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    Pressable,
+    RefreshControl, // <--- AÑADIDO (1. Importar)
+    ScrollView,
+    StyleSheet,
+    Switch,
+    TextInput,
+    TouchableOpacity,
+    useWindowDimensions,
+    View
 } from "react-native";
 
 export default function HomeScreen() {
@@ -458,7 +456,7 @@ export default function HomeScreen() {
                                         if (a.key === "enviar") {
                                             router.push("/(tabs)/transferScreen");
                                         } else if (a.key === "recibir") {
-                                            router.push("/(tabs)/recibirScreen");
+                                            router.push("/(tabs)");
                                         } else if (a.key === "pagar") {
                                             router.push("/(tabs)/payScreen");
                                         } else if (a.key === "cambiar") {
@@ -605,7 +603,7 @@ export default function HomeScreen() {
             </ScrollView>
 
             {/* ... (Tu FAB y Modal - sin cambios) ... */}
-            { (
+            {(
                 <TouchableOpacity
                     style={[styles.fab, { backgroundColor: tintColor }]}
                     onPress={() => setChatVisible(true)}
@@ -695,8 +693,8 @@ export default function HomeScreen() {
                                 />
                             </View>
 
-              <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
-                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                            <View style={{ padding: 12, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
+                                <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                                     <TextInput
                                         value={inputText}
                                         onChangeText={setInputText}
@@ -743,14 +741,14 @@ export default function HomeScreen() {
                                             <IconSymbol name="paperplane.fill" size={20} color="#fff" />
                                         )}
                                     </TouchableOpacity>
-                </View>
-              </View>
-            </KeyboardAvoidingView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </View>
-  );
+                                </View>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </Pressable>
+                </Pressable>
+            </Modal>
+        </View>
+    );
 }
 
 const CARD_RADIUS = 20;
