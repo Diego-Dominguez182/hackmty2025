@@ -468,7 +468,7 @@ export default function HomeScreen() {
                                         if (a.key === "enviar") {
                                             router.push("/(tabs)/transferScreen");
                                         } else if (a.key === "recibir") {
-                                            router.push("/(tabs)");
+                                            router.push("/(tabs)/recibirScreen");
                                         } else if (a.key === "pagar") {
                                             router.push("/(tabs)/payScreen");
                                         } else if (a.key === "cambiar") {
